@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "GPU Lexer Syntax Highlighting",
+  "version": "0.1.0",
+  "description": "Syntax-highlights every <pre> and <code> block on any page using gpu-lexer, a small neural model that runs on WebGPU and detects the language itself.",
+  "minimum_chrome_version": "116",
+  "permissions": ["activeTab", "offscreen", "storage"],
+  "background": {
+    "service_worker": "sw.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["highlight.css"],
+      "run_at": "document_idle",
+      "all_frames": true
+    }
+  ]
+}
