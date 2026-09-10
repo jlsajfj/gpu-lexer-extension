@@ -385,6 +385,23 @@ async function main() {
   }
 
   if (painted) {
+    await evaluate(page, `${SIGNATURE_FN} true`);
+
+    await step('the pre-highlighted fixture block stays unpainted', async () => {
+      const signature = await evaluate(page, `window.__smokeSignature('prehighlighted')`);
+      if (!Array.isArray(signature)) throw new Error('the pre-highlighted fixture block is missing from the page');
+      if (signature.length !== 0) throw new Error(`the detector painted over it: ${signature.join(', ')}`);
+      return '0 ranges';
+    });
+
+    await step('a block wrapped in plain spans is still painted', async () => {
+      const count = await waitFor('ranges inside the wrapper-span block', PAINT_TIMEOUT_MS, async () => {
+        const signature = await evaluate(page, `window.__smokeSignature('wrapped')`);
+        return Array.isArray(signature) && signature.length > 0 ? signature.length : null;
+      });
+      return `${String(count)} range(s)`;
+    });
+
     await step('a block edited after painting is re-highlighted to match an unedited control', async () => {
       if ((await evaluate(page, MUTATION_INJECT)) !== true) throw new Error('could not inject the mutation fixture');
 
@@ -411,6 +428,8 @@ async function main() {
       return `${String(after.length)} range(s) match the unedited control`;
     });
   } else {
+    record('the pre-highlighted fixture block stays unpainted', false, 'skipped: nothing was painted');
+    record('a block wrapped in plain spans is still painted', false, 'skipped: nothing was painted');
     record('a block edited after painting is re-highlighted to match an unedited control', false, 'skipped: nothing was painted');
   }
 

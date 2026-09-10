@@ -38,7 +38,6 @@ interface Session {
   lastParseAt: WeakMap<Element, number>;
   visible: WeakSet<Element>;
   shadowRoots: WeakSet<ShadowRoot>;
-  prehighlight: WeakMap<Element, { elements: number; length: number; skip: boolean }>;
   pending: Set<ParentNode> | null;
   fullScan: boolean;
   warned: Set<string>;
@@ -58,7 +57,6 @@ function newSession(settings: Settings | null): Session {
     lastParseAt: new WeakMap(),
     visible: new WeakSet(),
     shadowRoots: new WeakSet(),
-    prehighlight: new WeakMap(),
     pending: null,
     fullScan: false,
     warned: new Set(),
@@ -272,15 +270,6 @@ function remainingWait(el: Element, chars: number): number {
   return at + interval - performance.now();
 }
 
-function shouldSkipPreHighlighted(el: Element, code: string): boolean {
-  const elements = el.getElementsByTagName('*').length;
-  const cached = session.prehighlight.get(el);
-  if (cached && cached.elements === elements && cached.length === code.length) return cached.skip;
-  const skip = isPreHighlighted(el);
-  session.prehighlight.set(el, { elements, length: code.length, skip });
-  return skip;
-}
-
 function consider(el: Element, current: Settings): void {
   if (state !== 'running') return;
   if (!el.isConnected) {
@@ -292,14 +281,14 @@ function consider(el: Element, current: Settings): void {
     drop(el);
     return;
   }
-  if (current.skipPreHighlighted && shouldSkipPreHighlighted(el, code)) {
-    drop(el);
-    return;
-  }
   session.io?.observe(el);
   session.tracked.add(el);
   if (!session.visible.has(el)) return;
 
+  if (current.skipPreHighlighted && isPreHighlighted(el)) {
+    drop(el);
+    return;
+  }
   if (session.processed.get(el) === code && isPaintLive(el)) return;
 
   const wait = remainingWait(el, code.length);
@@ -354,6 +343,7 @@ function onIntersect(entries: IntersectionObserverEntry[]): void {
 async function processBlock(el: Element, code: string): Promise<void> {
   const result = await requestSpans(code);
   if (!result || state !== 'running') return;
+  if (!session.tracked.has(el)) return;
   if (!result.ok) {
     if (result.reason === 'no-webgpu') {
       warnOnce('no-webgpu', 'WebGPU is unavailable, highlighting is off for this page');

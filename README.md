@@ -1,7 +1,10 @@
 # gpu-lexer-extension
 
-A Chrome extension that syntax-highlights every `<pre>` and `<code>` block on any
-web page, automatically. It uses [gpu-lexer](https://gpu-lexer.vercel.app), a
+A Chrome extension that syntax-highlights `<pre>` and `<code>` blocks on any web
+page, automatically. Blocks the page already highlighted itself are left alone: a
+block counts as pre-highlighted when it carries a known highlighter class
+(`hljs`, `token`, `chroma`, `hljs-`, `cm-`, `mtk`, `pl-`, `tok-`, `shiki`) or shows
+more than one text color. It uses [gpu-lexer](https://gpu-lexer.vercel.app), a
 41k-parameter neural highlighter from Vercel Labs that runs on WebGPU and guesses
 the language itself, so there is no grammar list and no per-language parser to
 configure. The model weights are inlined in the library, which is 27KB brotli on

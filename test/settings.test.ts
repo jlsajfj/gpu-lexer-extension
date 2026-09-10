@@ -72,11 +72,6 @@ describe('loadSettings', () => {
     expect(Object.keys(s).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
   });
 
-  it('defaults skipPreHighlighted to true', async () => {
-    const s = await loadSettings();
-    expect(s.skipPreHighlighted).toBe(true);
-  });
-
   it('falls back to the skipPreHighlighted default when the stored value is not a boolean', async () => {
     installChrome({ [SETTINGS_KEY]: { skipPreHighlighted: 'yes' } });
     const s = await loadSettings();
