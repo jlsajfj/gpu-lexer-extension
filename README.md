@@ -32,7 +32,9 @@ from `chrome://extensions` after a rebuild.
 ## Icon
 
 `public/icons/` holds the toolbar and extension icon at 16, 32, 48 and 128 px,
-all downscaled from a 1024 px master. `npm run gen-icons` redraws the master with
+all downscaled from the 1024 px master in `assets/`. The master stays out of
+`public/` on purpose, so 700 KB of source art is not shipped inside the packaged
+extension. `npm run gen-icons` redraws the master with
 the OpenAI images API (`gpt-image-2` model) and regenerates every size; it needs
 `OPENAI_API_KEY` set, and it is deliberately manual and not part of
 `npm run build`, because each run costs money and is not reproducible. To rebuild
