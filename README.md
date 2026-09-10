@@ -5,10 +5,10 @@ page, automatically. Blocks the page already highlighted itself are left alone: 
 block counts as pre-highlighted when it carries a known highlighter class
 (`hljs`, `token`, `chroma`, `hljs-`, `cm-`, `mtk`, `pl-`, `tok-`, `shiki`) or shows
 more than one text color. It uses [gpu-lexer](https://gpu-lexer.vercel.app), a
-41k-parameter neural highlighter from Vercel Labs that runs on WebGPU and guesses
-the language itself, so there is no grammar list and no per-language parser to
-configure. The model weights are inlined in the library, which is 27KB brotli on
-the wire and 58KB unminified inside the bundle.
+41k-parameter neural highlighter by Shu Ding at Vercel Labs that runs on WebGPU
+and guesses the language itself, so there is no grammar list and no per-language
+parser to configure. The model weights are inlined in the library, which is 27KB
+brotli on the wire and 58KB unminified inside the bundle.
 
 ## Requirements
 
@@ -84,8 +84,9 @@ Stored in `chrome.storage.sync` under the key `settings`.
 
 ## Credit
 
-Syntax highlighting by [gpu-lexer](https://gpu-lexer.vercel.app) (Vercel Labs),
-MIT licensed. Try the upstream demo at https://gpu-lexer.vercel.app.
+Syntax highlighting by [gpu-lexer](https://gpu-lexer.vercel.app), a neural
+highlighter by Shu Ding at Vercel Labs, MIT licensed. Try the upstream demo at
+https://gpu-lexer.vercel.app.
 
 The extension is named Tint. The repository and package stay
 `gpu-lexer-extension`, and the internal `gpu-lexer-*` CSS custom properties and
