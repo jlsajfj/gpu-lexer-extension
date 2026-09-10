@@ -13,5 +13,6 @@
     "isolatedModules": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src", "test", "scripts"]
+  // scripts/*.mjs is untyped; checking it needs @types/node, which is not a dependency
+  "include": ["src", "test"]
 }

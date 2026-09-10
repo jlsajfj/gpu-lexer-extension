@@ -1,33 +1,35 @@
+import { isRecord } from './protocol.js';
+
+export const THEMES = ['auto', 'light', 'dark'] as const;
+
+export type Theme = (typeof THEMES)[number];
+
 export interface Settings {
   enabled: boolean;
   disabledHosts: string[];
   inlineCode: boolean;   // highlight single-line <code> outside <pre>
   minLength: number;
   maxLength: number;
-  theme: 'auto' | 'light' | 'dark';
+  theme: Theme;
 }
 
-export const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = Object.freeze({
   enabled: true, disabledHosts: [], inlineCode: false,
   minLength: 24, maxLength: 100_000, theme: 'auto',
-};
+});
 
 export const SETTINGS_KEY = 'settings';
 
-const THEMES = ['auto', 'light', 'dark'] as const;
-const LENGTH_CAP = 10_000_000;
-
-function isRecord(v: unknown): v is Record<string, unknown> {
-  return typeof v === 'object' && v !== null && !Array.isArray(v);
-}
+/** ~3x gpu-lexer's 16,384-token flush buffer at its measured 1.9-2.4 chars per token. */
+export const LENGTH_CAP = 200_000;
 
 function clampLength(v: unknown, fallback: number): number {
   if (typeof v !== 'number' || !Number.isFinite(v)) return fallback;
   return Math.min(LENGTH_CAP, Math.max(0, Math.trunc(v)));
 }
 
-function isTheme(v: unknown): v is Settings['theme'] {
-  return THEMES.some((t) => t === v);
+export function isTheme(v: unknown): v is Theme {
+  return THEMES.some((theme) => theme === v);
 }
 
 /** Coerces arbitrary stored/supplied data into a complete, valid Settings. */
@@ -57,27 +59,31 @@ export async function loadSettings(): Promise<Settings> {
     const stored = await chrome.storage.sync.get(SETTINGS_KEY);
     return normalizeSettings(stored[SETTINGS_KEY]);
   } catch {
-    return { ...DEFAULT_SETTINGS, disabledHosts: [...DEFAULT_SETTINGS.disabledHosts] };
+    return normalizeSettings(undefined);
   }
 }
 
-export async function saveSettings(patch: Partial<Settings>): Promise<Settings> {
+export interface SaveResult { settings: Settings; persisted: boolean }
+
+export async function saveSettings(patch: Partial<Settings>): Promise<SaveResult> {
   const next = normalizeSettings({ ...(await loadSettings()), ...patch });
   try {
     await chrome.storage.sync.set({ [SETTINGS_KEY]: next });
+    return { settings: next, persisted: true };
   } catch {
-    // storage unavailable: still return the validated result for this session
+    return { settings: next, persisted: false };
   }
-  return next;
+}
+
+export function hostEntryMatches(entry: string, hostname: string): boolean {
+  const host = hostname.trim().toLowerCase();
+  if (!host) return false;
+  const e = entry.trim().toLowerCase();
+  if (!e) return false;
+  if (!e.startsWith('.')) return host === e;
+  return host === e.slice(1) || host.endsWith(e);
 }
 
 export function isHostDisabled(s: Settings, hostname: string): boolean {
-  const host = hostname.trim().toLowerCase();
-  if (!host) return false;
-  return s.disabledHosts.some((entry) => {
-    const e = entry.trim().toLowerCase();
-    if (!e) return false;
-    if (!e.startsWith('.')) return host === e;
-    return host === e.slice(1) || host.endsWith(e);
-  });
+  return s.disabledHosts.some((entry) => hostEntryMatches(entry, hostname));
 }

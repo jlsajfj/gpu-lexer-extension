@@ -9,17 +9,9 @@
   --accent: #3b6cf6;
   --focus: #3b6cf6;
   --danger: #c0392b;
-  --tok-comment: #008000;
-  --tok-string: #a31515;
-  --tok-number: #098658;
-  --tok-keyword: #0000ff;
-  --tok-type: #267f99;
-  --tok-function: #795e26;
-  --tok-constant: #0070c1;
-  --tok-operator: #1c1e21;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-gpu-lexer-theme="light"]) {
     color-scheme: dark;
     --bg: #1f2124;
     --fg: #e6e8ea;
@@ -30,17 +22,9 @@
     --accent: #6b8afd;
     --focus: #8aa2ff;
     --danger: #ff8a80;
-    --tok-comment: #6a9955;
-    --tok-string: #ce9178;
-    --tok-number: #b5cea8;
-    --tok-keyword: #569cd6;
-    --tok-type: #4ec9b0;
-    --tok-function: #dcdcaa;
-    --tok-constant: #4fc1ff;
-    --tok-operator: #d4d4d4;
   }
 }
-:root[data-theme="dark"] {
+:root[data-gpu-lexer-theme="dark"] {
   color-scheme: dark;
   --bg: #1f2124;
   --fg: #e6e8ea;
@@ -51,14 +35,6 @@
   --accent: #6b8afd;
   --focus: #8aa2ff;
   --danger: #ff8a80;
-  --tok-comment: #6a9955;
-  --tok-string: #ce9178;
-  --tok-number: #b5cea8;
-  --tok-keyword: #569cd6;
-  --tok-type: #4ec9b0;
-  --tok-function: #dcdcaa;
-  --tok-constant: #4fc1ff;
-  --tok-operator: #d4d4d4;
 }
 
 [hidden] { display: none !important; }
@@ -183,10 +159,11 @@ body.ready { visibility: visible; }
   overflow-wrap: anywhere;
   font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-.tok-comment { color: var(--tok-comment); } .tok-string { color: var(--tok-string); }
-.tok-number { color: var(--tok-number); } .tok-keyword { color: var(--tok-keyword); }
-.tok-type { color: var(--tok-type); } .tok-function { color: var(--tok-function); }
-.tok-constant { color: var(--tok-constant); } .tok-operator { color: var(--tok-operator); }
+/* Token colors are the page palette from highlight.css, not a popup-local copy. */
+.tok-comment { color: var(--gpu-lexer-comment); } .tok-string { color: var(--gpu-lexer-string); }
+.tok-number { color: var(--gpu-lexer-number); } .tok-keyword { color: var(--gpu-lexer-keyword); }
+.tok-type { color: var(--gpu-lexer-type); } .tok-function { color: var(--gpu-lexer-function); }
+.tok-constant { color: var(--gpu-lexer-constant); } .tok-operator { color: var(--gpu-lexer-operator); }
 
 .msg { margin: 6px 0 0; font-size: 11.5px; color: var(--danger); }
 .msg:empty { display: none; }

@@ -9,13 +9,12 @@ interface HighlightLike {
 }
 
 interface RegistryLike {
-  get(name: string): Highlight | undefined;
-  set(name: string, highlight: Highlight): void;
+  get(name: string): HighlightLike | undefined;
+  set(name: string, highlight: HighlightLike): void;
   delete(name: string): void;
 }
 
 const painted = new WeakMap<Element, Map<PaintedClass, Range[]>>();
-const registry = new Map<PaintedClass, Highlight>();
 
 export function isHighlightApiSupported(): boolean {
   return typeof CSS !== 'undefined' && 'highlights' in CSS && typeof Highlight === 'function';
@@ -28,14 +27,12 @@ function highlights(): RegistryLike | null {
 function highlightFor(cls: PaintedClass): HighlightLike | null {
   const all = highlights();
   if (!all) return null;
-  const cached = registry.get(cls);
-  if (cached) return cached as unknown as HighlightLike;
   const name = highlightName(cls);
   const existing = all.get(name);
-  const highlight = existing ?? new Highlight();
-  if (!existing) all.set(name, highlight);
-  registry.set(cls, highlight);
-  return highlight as unknown as HighlightLike;
+  if (existing) return existing;
+  const created = new Highlight();
+  all.set(name, created);
+  return created;
 }
 
 /** Replaces any ranges previously painted for `el`. */
@@ -54,13 +51,25 @@ export function paint(el: Element, ranges: Map<PaintedClass, Range[]>): void {
   if (stored.size > 0) painted.set(el, stored);
 }
 
+/** True when nothing is stored, or every stored range still lies inside `el`. */
+export function isPaintLive(el: Element): boolean {
+  const stored = painted.get(el);
+  if (!stored) return true;
+  for (const list of stored.values()) {
+    for (const range of list) {
+      if (!el.contains(range.startContainer) || !el.contains(range.endContainer)) return false;
+    }
+  }
+  return true;
+}
+
 export function unpaint(el: Element): void {
   const stored = painted.get(el);
   if (!stored) return;
   const all = highlights();
   if (all) {
     for (const [cls, list] of stored) {
-      const highlight = all.get(highlightName(cls)) as unknown as HighlightLike | undefined;
+      const highlight = all.get(highlightName(cls));
       if (!highlight) continue;
       for (const range of list) highlight.delete(range);
     }
@@ -73,9 +82,8 @@ export function unpaintAll(): void {
   if (!all) return;
   for (const cls of PAINTED_CLASSES) {
     const name = highlightName(cls);
-    const highlight = all.get(name) as unknown as HighlightLike | undefined;
+    const highlight = all.get(name);
     if (highlight) highlight.clear();
     all.delete(name);
   }
-  registry.clear();
 }

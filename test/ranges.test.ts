@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { spansToRanges } from '../src/content/ranges.js';
-import type { PaintedClass, SyntaxSpan, SyntaxClassName } from '../src/shared/types.js';
+import type { PaintedClass, SyntaxClassName, SyntaxSpan } from '../src/shared/types.js';
 
 function el(html: string): HTMLElement {
   const host = document.createElement('div');
@@ -33,14 +33,12 @@ describe('spansToRanges', () => {
   it('resolves a span that crosses text-node boundaries', () => {
     const pre = el('<pre>const <span>x</span> = "hi";</pre>');
     expect(pre.textContent).toBe('const x = "hi";');
-    // 4..14 spans "t x " (node 1), "x" (node 2) and '"hi"' (node 3)
     const map = spansToRanges(pre, [span('keyword', 4, 14)]);
     expect(texts(map, 'keyword')).toEqual(['t x = "hi"']);
   });
 
   it('resolves a span that ends inside a later text node', () => {
     const pre = el('<pre>const <span>x</span> = "hi";</pre>');
-    // 6..14 is exactly the "x" node plus '"hi"' from the following node
     const map = spansToRanges(pre, [span('string', 6, 14)]);
     expect(texts(map, 'string')).toEqual(['x = "hi"']);
   });
@@ -87,18 +85,41 @@ describe('spansToRanges', () => {
     expect(texts(map, 'comment')).toEqual(['bc']);
   });
 
-  it('drops or clamps an end past the end of the text, never emitting the wrong text', () => {
+  it('clamps an end past the end of the text down to the text length', () => {
     const pre = el('<pre>hello world</pre>');
     const map = spansToRanges(pre, [span('keyword', 2, 9999)]);
-    const produced = texts(map, 'keyword');
-    expect(produced.every((t) => t === 'llo world')).toBe(true);
+    expect(texts(map, 'keyword')).toEqual(['llo world']);
+    expect(map.get('keyword')?.length).toBe(1);
   });
 
-  it('drops or clamps a negative start', () => {
+  it('clamps overshooting ends for more than one class in the same call', () => {
+    const pre = el('<pre>hello world</pre>');
+    const map = spansToRanges(pre, [span('keyword', 10, 9999), span('comment', 0, 9999)]);
+    expect(texts(map, 'keyword')).toEqual(['d']);
+    expect(texts(map, 'comment')).toEqual(['hello world']);
+  });
+
+  it('drops a span whose start is negative instead of clamping it to 0', () => {
     const pre = el('<pre>hello world</pre>');
     const map = spansToRanges(pre, [span('keyword', -5, 3)]);
-    const produced = texts(map, 'keyword');
-    expect(produced.every((t) => t === 'hel')).toBe(true);
+    expect(texts(map, 'keyword')).toEqual([]);
+    expect(map.has('keyword')).toBe(false);
+  });
+
+  it('drops a span that starts exactly at, or past, the end of the text', () => {
+    const pre = el('<pre>hello world</pre>');
+    const map = spansToRanges(pre, [span('keyword', 11, 12), span('comment', 20, 25)]);
+    expect(texts(map, 'keyword')).toEqual([]);
+    expect(texts(map, 'comment')).toEqual([]);
+    expect(map.size).toBe(0);
+  });
+
+  it('distinguishes a dropped span from a clamped one in the same call', () => {
+    const pre = el('<pre>hello world</pre>');
+    const map = spansToRanges(pre, [span('keyword', -5, 3), span('comment', 6, 9999)]);
+    expect(texts(map, 'keyword')).toEqual([]);
+    expect(texts(map, 'comment')).toEqual(['world']);
+    expect(map.size).toBe(1);
   });
 
   it('drops spans whose end is not after their start', () => {
@@ -107,16 +128,13 @@ describe('spansToRanges', () => {
       span('keyword', 5, 5),
       span('comment', 8, 3),
       span('string', -3, -1),
+      span('number', 0, -1),
     ]);
     expect(texts(map, 'keyword')).toEqual([]);
     expect(texts(map, 'comment')).toEqual([]);
     expect(texts(map, 'string')).toEqual([]);
-  });
-
-  it('drops a span that starts past the end of the text', () => {
-    const pre = el('<pre>hello world</pre>');
-    const map = spansToRanges(pre, [span('keyword', 20, 25)]);
-    expect(texts(map, 'keyword').every((t) => t === '')).toBe(true);
+    expect(texts(map, 'number')).toEqual([]);
+    expect(map.size).toBe(0);
   });
 
   it('returns an empty map for an empty element', () => {
@@ -154,8 +172,9 @@ describe('spansToRanges', () => {
 
   it('returns ranges that live inside the element', () => {
     const pre = el('<pre>const x = 42;</pre>');
-    const map = spansToRanges(pre, [span('keyword', 0, 5)]);
-    for (const range of map.get('keyword') ?? []) {
+    const ranges = spansToRanges(pre, [span('keyword', 0, 5)]).get('keyword');
+    expect(ranges?.map((r) => r.toString())).toEqual(['const']);
+    for (const range of ranges ?? []) {
       expect(pre.contains(range.startContainer)).toBe(true);
       expect(pre.contains(range.endContainer)).toBe(true);
     }

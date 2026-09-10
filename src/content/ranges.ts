@@ -55,6 +55,7 @@ export function spansToRanges(
     if (!isPainted(span.type)) continue;
     const { start } = span;
     if (!Number.isFinite(start) || !Number.isFinite(span.end)) continue;
+    // Clamp an out-of-range `end` to the text length; drop when `start` is out of range or the clamp leaves it empty.
     if (start < 0 || start >= total || span.end <= start) continue;
     const end = Math.min(span.end, total);
     if (end <= start) continue;

@@ -1,6 +1,9 @@
-export type SyntaxClassName =
-  | 'plain' | 'comment' | 'string' | 'number'
-  | 'keyword' | 'type' | 'function' | 'constant' | 'operator';
+export const SYNTAX_CLASSES = [
+  'plain', 'comment', 'string', 'number',
+  'keyword', 'type', 'function', 'constant', 'operator',
+] as const;
+
+export type SyntaxClassName = (typeof SYNTAX_CLASSES)[number];
 
 export interface SyntaxSpan { type: SyntaxClassName; start: number; end: number }
 

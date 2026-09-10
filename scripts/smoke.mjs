@@ -249,6 +249,53 @@ const HIGHLIGHT_KEYS = `(() => {
   };
 })()`;
 
+const MUTATION_TIMEOUT_MS = 20_000;
+
+const MUTATION_TEXT_A = `const doubled = values.map(function (value) { return value * 2; });
+console.log(doubled.length);
+`;
+
+const MUTATION_TEXT_B = `let running = 0;
+for (const value of values) { running = running + value * 3; }
+console.log(running);
+`;
+
+// Signature of the ranges painted inside one block: sorted "class:text" for every live range.
+const SIGNATURE_FN = `window.__smokeSignature = (id) => {
+  const el = document.getElementById(id);
+  if (el === null) return null;
+  const out = [];
+  for (const [name, highlight] of CSS.highlights) {
+    if (!String(name).startsWith('gpu-lexer-')) continue;
+    for (const range of highlight) {
+      if (el.contains(range.startContainer) && el.contains(range.endContainer)) {
+        out.push(String(name) + ':' + range.toString());
+      }
+    }
+  }
+  return out.sort();
+};`;
+
+const MUTATION_INJECT = `(() => {
+  ${SIGNATURE_FN}
+  const add = (id, text) => {
+    const pre = document.createElement('pre');
+    pre.id = id;
+    pre.textContent = text;
+    document.body.insertBefore(pre, document.body.firstChild);
+  };
+  add('smoke-subject', ${JSON.stringify(MUTATION_TEXT_A)});
+  add('smoke-control', ${JSON.stringify(MUTATION_TEXT_B)});
+  return true;
+})()`;
+
+const MUTATION_EDIT = `(() => {
+  const el = document.getElementById('smoke-subject');
+  if (el === null) return false;
+  el.textContent = ${JSON.stringify(MUTATION_TEXT_B)};
+  return true;
+})()`;
+
 async function main() {
   if (!argv.has('--no-build')) runBuild();
   if (!existsSync(path.join(DIST, 'manifest.json'))) {
@@ -336,6 +383,36 @@ async function main() {
     });
   } else {
     record('a keyword highlight holds a range', false, 'skipped: nothing was painted');
+  }
+
+  if (painted) {
+    await step('a block edited after painting is re-highlighted to match an unedited control', async () => {
+      if ((await evaluate(page, MUTATION_INJECT)) !== true) throw new Error('could not inject the mutation fixture');
+
+      const before = await waitFor('the injected blocks to be painted', MUTATION_TIMEOUT_MS, async () => {
+        const both = await evaluate(
+          page,
+          `[window.__smokeSignature('smoke-subject'), window.__smokeSignature('smoke-control')]`,
+        );
+        if (!Array.isArray(both)) return null;
+        const [subject, control] = both;
+        return Array.isArray(subject) && subject.length > 0 && Array.isArray(control) && control.length > 0 ? both : null;
+      });
+      const [subjectBefore, control] = before;
+      if (subjectBefore.join('|') === control.join('|')) {
+        throw new Error('the two fixture texts highlight identically, so editing one would prove nothing');
+      }
+
+      if ((await evaluate(page, MUTATION_EDIT)) !== true) throw new Error('could not edit the block');
+
+      const after = await waitFor('the edited block to be re-highlighted', MUTATION_TIMEOUT_MS, async () => {
+        const signature = await evaluate(page, `window.__smokeSignature('smoke-subject')`);
+        return Array.isArray(signature) && signature.join('|') === control.join('|') ? signature : null;
+      });
+      return `${String(after.length)} range(s) match the unedited control`;
+    });
+  } else {
+    record('a block edited after painting is re-highlighted to match an unedited control', false, 'skipped: nothing was painted');
   }
 
   page.close();

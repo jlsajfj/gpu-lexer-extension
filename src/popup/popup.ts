@@ -1,6 +1,9 @@
 import {
   DEFAULT_SETTINGS,
+  hostEntryMatches,
   isHostDisabled,
+  isTheme,
+  LENGTH_CAP,
   loadSettings,
   saveSettings,
   type Settings,
@@ -25,11 +28,14 @@ const lengthError = el<HTMLElement>('length-error');
 const errorLine = el<HTMLElement>('error');
 const themeInputs = [...document.querySelectorAll<HTMLInputElement>('input[name="theme"]')];
 
-let settings: Settings = { ...DEFAULT_SETTINGS, disabledHosts: [] };
-let hostname: string | null = null;
+minInput.max = String(LENGTH_CAP);
+maxInput.max = String(LENGTH_CAP);
 
-const themeOf = (value: string): Settings['theme'] | null =>
-  value === 'auto' || value === 'light' || value === 'dark' ? value : null;
+let settings: Settings = DEFAULT_SETTINGS;
+let hostname: string | null = null;
+let writes: Promise<void> = Promise.resolve();
+
+const SAVE_ERROR = 'Settings could not be saved, so that change was not stored.';
 
 function setMessage(node: HTMLElement, text: string | null): void {
   node.textContent = text ?? '';
@@ -42,7 +48,9 @@ function render(): void {
   maxInput.value = String(settings.maxLength);
   for (const input of themeInputs) input.checked = input.value === settings.theme;
   siteToggle.checked = hostname !== null && isHostDisabled(settings, hostname);
-  document.documentElement.setAttribute('data-theme', settings.theme);
+  const root = document.documentElement;
+  if (settings.theme === 'auto') root.removeAttribute('data-gpu-lexer-theme');
+  else root.setAttribute('data-gpu-lexer-theme', settings.theme);
   panel.classList.toggle('off', !settings.enabled);
   for (const control of [siteToggle, inlineInput, minInput, maxInput]) {
     control.disabled = !settings.enabled;
@@ -61,25 +69,19 @@ function renderSite(): void {
   siteHost.title = hostname;
 }
 
-// the storage layer reports write failures by not throwing, so confirm by re-reading
-async function stored(next: Settings): Promise<boolean> {
-  return JSON.stringify(await loadSettings()) === JSON.stringify(next);
-}
-
-async function update(patch: Partial<Settings>): Promise<void> {
-  try {
-    const next = await saveSettings(patch);
-    if (await stored(next)) {
+// Serialized: every write re-reads storage, so overlapping updates would drop each other
+function update(patch: Partial<Settings>): void {
+  writes = writes
+    .then(async () => {
+      const { settings: next, persisted } = await saveSettings(patch);
       settings = next;
-      setMessage(errorLine, null);
+      setMessage(errorLine, persisted ? null : SAVE_ERROR);
       render();
-      return;
-    }
-  } catch {
-    // handled by the shared failure path below
-  }
-  setMessage(errorLine, 'Settings could not be saved, so that change was not stored.');
-  render();
+    })
+    .catch(() => {
+      setMessage(errorLine, SAVE_ERROR);
+      render();
+    });
 }
 
 type Site = { host: string } | { reason: string };
@@ -91,58 +93,65 @@ async function probeSite(): Promise<Site> {
       return { reason: 'Site control needs the activeTab permission to read this tab.' };
     }
     const url = new URL(tab.url);
-    if ((url.protocol !== 'http:' && url.protocol !== 'https:') || !url.hostname) {
-      return { reason: 'Site control is unavailable on this page.' };
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return { reason: 'Site control works on http and https pages only.' };
+    }
+    if (!url.hostname) {
+      return { reason: 'Site control could not read this page address.' };
     }
     return { host: url.hostname };
   } catch {
-    return { reason: 'Site control is unavailable on this page.' };
+    return { reason: 'Site control could not read this tab.' };
   }
 }
 
 type Lengths = { ok: true; min: number; max: number } | { ok: false; message: string };
+type ReadNumber = { ok: true; value: number } | { ok: false; message: string };
 
-function readNumber(input: HTMLInputElement, label: string): number | string {
+function readNumber(input: HTMLInputElement, label: string): ReadNumber {
   const raw = input.value.trim();
-  if (raw === '') return `${label} is required.`;
+  if (raw === '') return { ok: false, message: `${label} is required.` };
   const value = Number(raw);
-  if (!Number.isFinite(value)) return `${label} must be a number.`;
-  if (value < 0) return `${label} cannot be negative.`;
-  return Math.trunc(value);
+  if (!Number.isFinite(value)) return { ok: false, message: `${label} must be a number.` };
+  if (value < 0) return { ok: false, message: `${label} cannot be negative.` };
+  if (value > LENGTH_CAP) {
+    return { ok: false, message: `${label} cannot exceed ${LENGTH_CAP.toLocaleString()}.` };
+  }
+  return { ok: true, value: Math.trunc(value) };
 }
 
 function readLengths(): Lengths {
   const min = readNumber(minInput, 'Minimum length');
-  if (typeof min === 'string') return { ok: false, message: min };
+  if (!min.ok) return { ok: false, message: min.message };
   const max = readNumber(maxInput, 'Maximum length');
-  if (typeof max === 'string') return { ok: false, message: max };
-  if (min > max) return { ok: false, message: 'Minimum length must not exceed maximum length.' };
-  return { ok: true, min, max };
+  if (!max.ok) return { ok: false, message: max.message };
+  if (min.value > max.value) {
+    return { ok: false, message: 'Minimum length must not exceed maximum length.' };
+  }
+  return { ok: true, min: min.value, max: max.value };
 }
 
 enabledInput.addEventListener('change', () => {
-  void update({ enabled: enabledInput.checked });
+  update({ enabled: enabledInput.checked });
 });
 
 inlineInput.addEventListener('change', () => {
-  void update({ inlineCode: inlineInput.checked });
+  update({ inlineCode: inlineInput.checked });
 });
 
 siteToggle.addEventListener('change', () => {
-  if (hostname === null) return;
+  const host = hostname;
+  if (host === null) return;
   // unchecking drops every entry that already matches this host, not just an identical string
   const disabledHosts = siteToggle.checked
-    ? [...new Set([...settings.disabledHosts, hostname])]
-    : settings.disabledHosts.filter(
-        (entry) => !isHostDisabled({ ...settings, disabledHosts: [entry] }, hostname as string),
-      );
-  void update({ disabledHosts });
+    ? [...new Set([...settings.disabledHosts, host])]
+    : settings.disabledHosts.filter((entry) => !hostEntryMatches(entry, host));
+  update({ disabledHosts });
 });
 
 for (const input of themeInputs) {
   input.addEventListener('change', () => {
-    const theme = themeOf(input.value);
-    if (input.checked && theme !== null) void update({ theme });
+    if (input.checked && isTheme(input.value)) update({ theme: input.value });
   });
 }
 
@@ -158,7 +167,7 @@ for (const input of [minInput, maxInput]) {
       return;
     }
     setMessage(lengthError, null);
-    void update({ minLength: lengths.min, maxLength: lengths.max });
+    update({ minLength: lengths.min, maxLength: lengths.max });
   });
 }
 

@@ -1,6 +1,6 @@
 import type { Settings } from '../shared/settings.js';
 
-const EDITOR_SELECTOR = '[contenteditable=""], [contenteditable="true"]';
+const EDITOR_SELECTOR = '[contenteditable]:not([contenteditable="false"])';
 
 /** Candidate blocks under `root`, outermost only (a <code> inside a <pre> yields just the <pre>). */
 export function findBlocks(root: ParentNode): HTMLElement[] {
@@ -23,13 +23,13 @@ function hasAncestorIn(el: Element, set: ReadonlySet<Element>): boolean {
 
 export function isEligible(
   el: Element,
+  code: string,
   s: Pick<Settings, 'minLength' | 'maxLength' | 'inlineCode'>,
 ): boolean {
-  const text = el.textContent ?? '';
-  if (text.trim().length === 0) return false;
-  if (text.length < s.minLength || text.length > s.maxLength) return false;
+  if (code.trim().length === 0) return false;
+  if (code.length < s.minLength || code.length > s.maxLength) return false;
   if (el.closest(EDITOR_SELECTOR)) return false;
-  if (el.localName === 'code' && !el.closest('pre') && !text.includes('\n')) return s.inlineCode;
+  if (el.localName === 'code' && !el.closest('pre') && !code.includes('\n')) return s.inlineCode;
   return true;
 }
 

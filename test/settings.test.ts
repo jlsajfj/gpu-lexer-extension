@@ -111,36 +111,41 @@ describe('loadSettings', () => {
 describe('saveSettings', () => {
   it('merges a patch over the stored value and persists the merged result', async () => {
     const { store } = installChrome({ [SETTINGS_KEY]: { enabled: false } });
-    const result = await saveSettings({ theme: 'dark' });
-    expect(result).toEqual({ ...DEFAULT_SETTINGS, enabled: false, theme: 'dark' });
-    expect(store[SETTINGS_KEY]).toEqual(result);
+    const { settings, persisted } = await saveSettings({ theme: 'dark' });
+    expect(settings).toEqual({ ...DEFAULT_SETTINGS, enabled: false, theme: 'dark' });
+    expect(persisted).toBe(true);
+    expect(store[SETTINGS_KEY]).toEqual(settings);
   });
 
   it('returns and persists the defaults when nothing was stored', async () => {
     const { store } = installChrome();
-    const result = await saveSettings({ minLength: 40 });
-    expect(result).toEqual({ ...DEFAULT_SETTINGS, minLength: 40 });
-    expect(store[SETTINGS_KEY]).toEqual(result);
+    const { settings, persisted } = await saveSettings({ minLength: 40 });
+    expect(settings).toEqual({ ...DEFAULT_SETTINGS, minLength: 40 });
+    expect(persisted).toBe(true);
+    expect(store[SETTINGS_KEY]).toEqual(settings);
   });
 
   it('persists a complete object rather than the bare patch', async () => {
     const { store } = installChrome();
-    await saveSettings({ inlineCode: true });
-    const persisted = store[SETTINGS_KEY] as Settings;
-    expect(Object.keys(persisted).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
-    expect(persisted.inlineCode).toBe(true);
+    const { settings } = await saveSettings({ inlineCode: true });
+    const stored = store[SETTINGS_KEY] as Settings;
+    expect(Object.keys(stored).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
+    expect(stored).toEqual(settings);
+    expect(stored.inlineCode).toBe(true);
   });
 
   it('coerces garbage in the patch instead of writing it through', async () => {
     const { store } = installChrome();
-    const result = await saveSettings({ theme: 'neon' } as unknown as Partial<Settings>);
-    expect(result.theme).toBe('auto');
-    expect(store[SETTINGS_KEY]).toEqual(result);
+    const { settings } = await saveSettings({ theme: 'neon' } as unknown as Partial<Settings>);
+    expect(settings.theme).toBe('auto');
+    expect(store[SETTINGS_KEY]).toEqual(settings);
   });
 
-  it('still returns a valid merged result when the write fails', async () => {
+  it('reports the write as unpersisted when storage rejects it', async () => {
     installChrome({}, { throwOnSet: true });
-    await expect(saveSettings({ enabled: false })).resolves.toEqual({ ...DEFAULT_SETTINGS, enabled: false });
+    const { settings, persisted } = await saveSettings({ enabled: false });
+    expect(persisted).toBe(false);
+    expect(settings).toEqual({ ...DEFAULT_SETTINGS, enabled: false });
   });
 });
 

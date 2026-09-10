@@ -1,12 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import { extractCode, findBlocks, isEligible } from '../src/content/detect.js';
+import type { Settings } from '../src/shared/settings.js';
 
-const BASE = { minLength: 24, maxLength: 100_000, inlineCode: false };
+type Lengths = Pick<Settings, 'minLength' | 'maxLength' | 'inlineCode'>;
+
+const BASE: Lengths = { minLength: 24, maxLength: 100_000, inlineCode: false };
 
 function root(html: string): HTMLElement {
   const host = document.createElement('div');
   host.innerHTML = html;
   return host;
+}
+
+function first(html: string): Element {
+  const element = root(html).firstElementChild;
+  if (element === null) throw new Error(`fixture produced no element: ${html}`);
+  return element;
 }
 
 function tags(els: Element[]): string[] {
@@ -24,6 +33,10 @@ function textNodeChars(el: Element): number {
     total += (node as Text).data.length;
   }
   return total;
+}
+
+function check(el: Element, s: Lengths, code: string = extractCode(el)): boolean {
+  return isEligible(el, code, s);
 }
 
 describe('findBlocks', () => {
@@ -62,62 +75,85 @@ describe('findBlocks', () => {
 
 describe('isEligible', () => {
   it('rejects text shorter than minLength', () => {
-    const pre = root('<pre>tiny</pre>').firstElementChild as Element;
-    expect(isEligible(pre, BASE)).toBe(false);
+    expect(check(first('<pre>tiny</pre>'), BASE)).toBe(false);
   });
 
   it('rejects text longer than maxLength', () => {
-    const pre = root('<pre>this is longer than ten</pre>').firstElementChild as Element;
-    expect(isEligible(pre, { minLength: 0, maxLength: 10, inlineCode: true })).toBe(false);
+    expect(check(first('<pre>this is longer than ten</pre>'), { minLength: 0, maxLength: 10, inlineCode: true })).toBe(false);
   });
 
   it('accepts text exactly on both length bounds', () => {
-    const pre = root('<pre>0123456789</pre>').firstElementChild as Element;
-    expect(isEligible(pre, { minLength: 10, maxLength: 10, inlineCode: false })).toBe(true);
+    expect(check(first('<pre>0123456789</pre>'), { minLength: 10, maxLength: 10, inlineCode: false })).toBe(true);
   });
 
   it('rejects whitespace-only blocks', () => {
-    const pre = root('<pre>      </pre>').firstElementChild as Element;
-    expect(isEligible(pre, { minLength: 0, maxLength: 100, inlineCode: true })).toBe(false);
+    expect(check(first('<pre>      </pre>'), { minLength: 0, maxLength: 100, inlineCode: true })).toBe(false);
+  });
+
+  it('measures the code argument, not the element text', () => {
+    const long = first('<pre>this element text is comfortably over the minimum</pre>');
+    expect(check(long, BASE)).toBe(true);
+    expect(check(long, BASE, 'tiny')).toBe(false);
+    const short = first('<pre>ab</pre>');
+    expect(check(short, BASE)).toBe(false);
+    expect(check(short, BASE, 'x'.repeat(40))).toBe(true);
   });
 
   it('accepts a multi-line <code> inside a <pre>', () => {
     const code = root('<pre><code>line one is here\nline two is here</code></pre>').querySelector('code');
     expect(code).not.toBeNull();
-    expect(isEligible(code as Element, BASE)).toBe(true);
+    expect(check(code as Element, BASE)).toBe(true);
   });
 
   it('rejects a single-line bare <code> when inlineCode is false', () => {
-    const code = root('<code>const value = compute(x, y)</code>').firstElementChild as Element;
-    expect(isEligible(code, { ...BASE, inlineCode: false })).toBe(false);
+    expect(check(first('<code>const value = compute(x, y)</code>'), { ...BASE, inlineCode: false })).toBe(false);
   });
 
   it('accepts a single-line bare <code> when inlineCode is true', () => {
-    const code = root('<code>const value = compute(x, y)</code>').firstElementChild as Element;
-    expect(isEligible(code, { ...BASE, inlineCode: true })).toBe(true);
+    expect(check(first('<code>const value = compute(x, y)</code>'), { ...BASE, inlineCode: true })).toBe(true);
   });
 
   it('still accepts a multi-line bare <code> when inlineCode is false', () => {
-    const code = root('<code>first line here\nsecond line here</code>').firstElementChild as Element;
-    expect(isEligible(code, { ...BASE, inlineCode: false })).toBe(true);
+    expect(check(first('<code>first line here\nsecond line here</code>'), { ...BASE, inlineCode: false })).toBe(true);
+  });
+
+  it('takes the newline test from the code argument too', () => {
+    const code = first('<code>const value = compute(x, y)</code>');
+    expect(check(code, { ...BASE, inlineCode: false })).toBe(false);
+    expect(check(code, { ...BASE, inlineCode: false }, 'first line here\nsecond line here')).toBe(true);
   });
 
   it('rejects an element inside a contenteditable ancestor', () => {
-    const pre = root('<div contenteditable="true"><pre>const x = 1; const y = 2;</pre></div>')
-      .querySelector('pre') as Element;
-    expect(isEligible(pre, BASE)).toBe(false);
+    const pre = root('<div contenteditable="true"><pre>const x = 1; const y = 2;</pre></div>').querySelector('pre') as Element;
+    expect(check(pre, BASE)).toBe(false);
   });
 
   it('rejects an element that is itself contenteditable', () => {
-    const pre = root('<pre contenteditable="true">const x = 1; const y = 2;</pre>')
-      .firstElementChild as Element;
-    expect(isEligible(pre, BASE)).toBe(false);
+    expect(check(first('<pre contenteditable="true">const x = 1; const y = 2;</pre>'), BASE)).toBe(false);
+  });
+
+  it('rejects an empty contenteditable attribute, which means true', () => {
+    expect(check(first('<pre contenteditable="">const x = 1; const y = 2;</pre>'), BASE)).toBe(false);
+  });
+
+  it('rejects contenteditable="plaintext-only" on the element itself', () => {
+    expect(check(first('<pre contenteditable="plaintext-only">const x = 1; const y = 2;</pre>'), BASE)).toBe(false);
+  });
+
+  it('rejects an element inside a contenteditable="plaintext-only" ancestor', () => {
+    const pre = root('<div contenteditable="plaintext-only"><pre>const x = 1; const y = 2;</pre></div>').querySelector('pre') as Element;
+    expect(check(pre, BASE)).toBe(false);
   });
 
   it('accepts an element inside a contenteditable="false" ancestor', () => {
-    const pre = root('<div contenteditable="false"><pre>const x = 1; const y = 2;</pre></div>')
+    const pre = root('<div contenteditable="false"><pre>const x = 1; const y = 2;</pre></div>').querySelector('pre') as Element;
+    expect(check(pre, BASE)).toBe(true);
+  });
+
+  it('rejects an element whose only contenteditable="false" ancestor sits inside an editable one', () => {
+    const pre = root('<div contenteditable="true"><div contenteditable="false"><pre>const x = 1; const y = 2;</pre></div></div>')
       .querySelector('pre') as Element;
-    expect(isEligible(pre, BASE)).toBe(true);
+    expect(check(pre, BASE)).toBe(false);
   });
 });
 
@@ -129,24 +165,22 @@ describe('extractCode', () => {
   });
 
   it('returns whitespace inside nested markup without collapsing it', () => {
-    const pre = root('<pre><span>  a  b  </span>tail</pre>').firstElementChild as Element;
-    expect(extractCode(pre)).toBe('  a  b  tail');
+    expect(extractCode(first('<pre><span>  a  b  </span>tail</pre>'))).toBe('  a  b  tail');
   });
 
   it('returns an empty string for an empty element', () => {
-    expect(extractCode(root('<pre></pre>').firstElementChild as Element)).toBe('');
+    expect(extractCode(first('<pre></pre>'))).toBe('');
   });
 
   it('returns text from the whole subtree, not just direct children', () => {
-    const pre = root('<pre>outer<span>inner<em>deep</em></span></pre>').firstElementChild as Element;
-    expect(extractCode(pre)).toBe('outerinnerdeep');
+    expect(extractCode(first('<pre>outer<span>inner<em>deep</em></span></pre>'))).toBe('outerinnerdeep');
   });
 
   it('length equals the sum of descendant text-node lengths', () => {
     const fixture =
       '<pre>const <span>x</span> = <em>"hi"</em>;\n' +
       '<span><span>nested</span></span></pre>';
-    const pre = root(fixture).firstElementChild as Element;
+    const pre = first(fixture);
     expect(extractCode(pre).length).toBe(textNodeChars(pre));
     expect(extractCode(pre)).toBe(pre.textContent);
   });

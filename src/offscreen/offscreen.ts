@@ -1,47 +1,51 @@
 import { parse } from 'gpu-lexer';
 import type { SyntaxSpan } from '../shared/types.js';
 import { isParseRequest, type ParseRequest, type ParseResult } from '../shared/protocol.js';
+import { SpanCache } from './cache.js';
 
-const MAX_ENTRIES = 500;
-const MAX_CHARS = 5_000_000;
-
-const cache = new Map<string, SyntaxSpan[]>();
+const cache = new SpanCache({ maxEntries: 500, maxChars: 5_000_000 });
 const inflight = new Map<string, Promise<SyntaxSpan[]>>();
-let cachedChars = 0;
 let latchedGpuFailure: string | null = null;
 
-function remember(code: string, spans: SyntaxSpan[]): void {
-  const previous = cache.get(code);
-  if (previous !== undefined) {
-    cache.delete(code);
-    cachedChars -= code.length;
-  }
-  cache.set(code, spans);
-  cachedChars += code.length;
-  // The size > 1 guard keeps a single oversized entry instead of evicting what was just cached
-  while ((cache.size > MAX_ENTRIES || cachedChars > MAX_CHARS) && cache.size > 1) {
-    const oldest = cache.keys().next().value;
-    if (oldest === undefined) break;
-    cache.delete(oldest);
-    cachedChars -= oldest.length;
-  }
+type GpuNavigator = { requestAdapter(): Promise<unknown> };
+
+function navigatorGpu(): GpuNavigator | undefined {
+  const gpu = (navigator as unknown as { gpu?: GpuNavigator | null }).gpu;
+  return gpu ?? undefined;
+}
+
+function latchGpuFailure(message: string): string {
+  latchedGpuFailure ??= message;
+  return latchedGpuFailure;
 }
 
 function gpuFailureReason(): string | null {
-  if (latchedGpuFailure !== null) return latchedGpuFailure;
-  const gpu = (navigator as unknown as { gpu?: unknown }).gpu;
-  if (gpu === undefined || gpu === null) {
-    latchedGpuFailure = 'WebGPU unavailable: navigator.gpu is undefined';
+  if (navigatorGpu() === undefined) {
+    return latchGpuFailure('WebGPU unavailable: navigator.gpu is undefined');
   }
   return latchedGpuFailure;
 }
+
+// Started at load so a null adapter is classified before the first parse
+const adapterProbe: Promise<void> = (async () => {
+  const gpu = navigatorGpu();
+  if (gpu === undefined) {
+    latchGpuFailure('WebGPU unavailable: navigator.gpu is undefined');
+    return;
+  }
+  try {
+    if ((await gpu.requestAdapter()) === null) latchGpuFailure('WebGPU unavailable: no adapter');
+  } catch {
+    // a probe rejection is not proof that WebGPU is missing; parse() reports its own failure
+  }
+})();
 
 function parseOnce(code: string): Promise<SyntaxSpan[]> {
   const existing = inflight.get(code);
   if (existing !== undefined) return existing;
   const pending = parse(code)
     .then((spans) => {
-      remember(code, spans);
+      cache.set(code, spans);
       return spans;
     })
     .finally(() => {
@@ -54,21 +58,22 @@ function parseOnce(code: string): Promise<SyntaxSpan[]> {
 function toFailure(error: unknown): ParseResult {
   const message = error instanceof Error ? error.message : String(error);
   if (latchedGpuFailure !== null || /webgpu unavailable/i.test(message)) {
-    latchedGpuFailure = message.length > 0 ? message : 'WebGPU unavailable';
-    return { ok: false, reason: 'no-webgpu', message: latchedGpuFailure };
+    return {
+      ok: false,
+      reason: 'no-webgpu',
+      message: latchGpuFailure(message.length > 0 ? message : 'WebGPU unavailable'),
+    };
   }
   return { ok: false, reason: 'parse-failed', message };
 }
 
 async function handle(request: ParseRequest): Promise<ParseResult> {
+  await adapterProbe;
   const gpuFailure = gpuFailureReason();
   if (gpuFailure !== null) return { ok: false, reason: 'no-webgpu', message: gpuFailure };
 
   const cached = cache.get(request.code);
-  if (cached !== undefined) {
-    remember(request.code, cached);
-    return { ok: true, spans: cached };
-  }
+  if (cached !== undefined) return { ok: true, spans: cached };
 
   try {
     return { ok: true, spans: await parseOnce(request.code) };
