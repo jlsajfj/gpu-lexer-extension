@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>GPU Lexer</title>
+<link rel="stylesheet" href="./popup.css">
+<link rel="stylesheet" href="./highlight.css">
+</head>
+<body>
+<header class="head">
+  <h1>GPU Lexer</h1>
+  <span class="sub">WebGPU highlighting</span>
+</header>
+
+<main class="panel" id="panel">
+  <div class="row">
+    <label class="row-label" for="enabled">Highlight code on pages</label>
+    <label class="switch">
+      <input type="checkbox" id="enabled" role="switch">
+      <span class="track"><span class="thumb"></span></span>
+    </label>
+  </div>
+
+  <div class="row">
+    <span class="row-label" id="theme-label">Theme</span>
+    <div class="seg" role="radiogroup" aria-labelledby="theme-label">
+      <input type="radio" name="theme" id="theme-auto" value="auto">
+      <label for="theme-auto">Auto</label>
+      <input type="radio" name="theme" id="theme-light" value="light">
+      <label for="theme-light">Light</label>
+      <input type="radio" name="theme" id="theme-dark" value="dark">
+      <label for="theme-dark">Dark</label>
+    </div>
+  </div>
+
+  <div class="group" id="pipeline">
+    <div class="row" id="site-row">
+      <label class="row-label" for="site-toggle">
+        Disabled on this site
+        <span class="host" id="site-host"></span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="site-toggle" role="switch">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+    <p class="msg note" id="site-note" role="status" hidden></p>
+
+    <div class="row">
+      <label class="row-label" for="inline-code">Inline code</label>
+      <label class="switch">
+        <input type="checkbox" id="inline-code" role="switch">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+
+    <details class="adv" id="advanced">
+      <summary>Advanced</summary>
+      <div class="row">
+        <label class="row-label" for="min-length">Min length</label>
+        <input class="num" type="number" id="min-length" min="0" step="1" inputmode="numeric" aria-describedby="length-error">
+      </div>
+      <div class="row">
+        <label class="row-label" for="max-length">Max length</label>
+        <input class="num" type="number" id="max-length" min="0" step="1" inputmode="numeric" aria-describedby="length-error">
+      </div>
+      <p class="msg" id="length-error" role="status"></p>
+    </details>
+  </div>
+
+  <div class="preview" role="img" aria-label="Preview of the token colors">
+    <code><span class="tok-comment"># rank rows</span> <span class="tok-keyword">const</span> <span class="tok-function">load</span> <span class="tok-operator">=</span> <span class="tok-type">Parser</span><span class="tok-operator">(</span><span class="tok-string">"model.bin"</span>, <span class="tok-number">42</span>, <span class="tok-constant">true</span><span class="tok-operator">)</span></code>
+  </div>
+
+  <p class="msg" id="error" role="alert"></p>
+</main>
+
+<script type="module" src="./popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+/* Token colors only: the Custom Highlight API cannot change font weight or style. */
+
+:root {
+  --gpu-lexer-comment: #6e7781;  --gpu-lexer-string: #1a7f37;
+  --gpu-lexer-number: #953800;   --gpu-lexer-keyword: #a626a4;
+  --gpu-lexer-type: #0550ae;     --gpu-lexer-function: #6f42c1;
+  --gpu-lexer-constant: #0f7b8a; --gpu-lexer-operator: #4b5563;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --gpu-lexer-comment: #7f848e;  --gpu-lexer-string: #98c379;
+    --gpu-lexer-number: #d19a66;   --gpu-lexer-keyword: #c678dd;
+    --gpu-lexer-type: #e5c07b;     --gpu-lexer-function: #61afef;
+    --gpu-lexer-constant: #56b6c2; --gpu-lexer-operator: #9aa4b2;
+  }
+}
+
+/* Keep last: an explicit theme choice must beat the media query in both directions. */
+:root[data-gpu-lexer-theme='light'] {
+  --gpu-lexer-comment: #6e7781;  --gpu-lexer-string: #1a7f37;
+  --gpu-lexer-number: #953800;   --gpu-lexer-keyword: #a626a4;
+  --gpu-lexer-type: #0550ae;     --gpu-lexer-function: #6f42c1;
+  --gpu-lexer-constant: #0f7b8a; --gpu-lexer-operator: #4b5563;
+}
+
+:root[data-gpu-lexer-theme='dark'] {
+  --gpu-lexer-comment: #7f848e;  --gpu-lexer-string: #98c379;
+  --gpu-lexer-number: #d19a66;   --gpu-lexer-keyword: #c678dd;
+  --gpu-lexer-type: #e5c07b;     --gpu-lexer-function: #61afef;
+  --gpu-lexer-constant: #56b6c2; --gpu-lexer-operator: #9aa4b2;
+}
+
+::highlight(gpu-lexer-comment) { color: var(--gpu-lexer-comment); }
+::highlight(gpu-lexer-string) { color: var(--gpu-lexer-string); }
+::highlight(gpu-lexer-number) { color: var(--gpu-lexer-number); }
+::highlight(gpu-lexer-keyword) { color: var(--gpu-lexer-keyword); }
+::highlight(gpu-lexer-type) { color: var(--gpu-lexer-type); }
+::highlight(gpu-lexer-function) { color: var(--gpu-lexer-function); }
+::highlight(gpu-lexer-constant) { color: var(--gpu-lexer-constant); }
+::highlight(gpu-lexer-operator) { color: var(--gpu-lexer-operator); }
