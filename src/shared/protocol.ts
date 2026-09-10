@@ -2,10 +2,8 @@ import { SYNTAX_CLASSES, type SyntaxSpan } from './types.js';
 
 export const OFFSCREEN_TARGET = 'gpu-lexer-offscreen';
 
-/** content script -> service worker */
 export interface HighlightRequest { kind: 'highlight'; code: string }
 
-/** service worker -> offscreen document */
 export interface ParseRequest { target: typeof OFFSCREEN_TARGET; kind: 'parse'; code: string }
 
 export const PARSE_FAILURES = ['no-webgpu', 'parse-failed', 'unavailable'] as const;

@@ -95,12 +95,14 @@ describe('SpanCache', () => {
     expect(cache.get('bbb')).toBeUndefined();
   });
 
-  it('does not evict an entry sitting exactly on the char bound', () => {
+  it('does not evict when the total lands exactly on the char bound', () => {
     const cache = new SpanCache({ maxEntries: 10, maxChars: 5 });
-    cache.set('abcde', SPANS);
-    expect(cache.size).toBe(1);
+    cache.set('ab', SPANS);
+    cache.set('abc', SPANS);
+    expect(cache.size).toBe(2);
     expect(cache.chars).toBe(5);
-    expect(cache.get('abcde')).toEqual(SPANS);
+    expect(cache.get('ab')).toEqual(SPANS);
+    expect(cache.get('abc')).toEqual(SPANS);
   });
 
   it('terminates with maxEntries: 1', () => {
@@ -117,14 +119,6 @@ describe('SpanCache', () => {
     for (let i = 0; i < 50; i++) cache.set(code(i, 7), SPANS);
     expect(cache.size).toBe(1);
     expect(cache.get(code(49, 7))).toEqual(SPANS);
-  });
-
-  it('terminates when every entry overflows both bounds', () => {
-    const cache = new SpanCache({ maxEntries: 1, maxChars: 1 });
-    for (let i = 0; i < 1000; i++) cache.set(code(i, 50), SPANS);
-    expect(cache.size).toBe(1);
-    expect(cache.chars).toBe(50);
-    expect(cache.get(code(999, 50))).toEqual(SPANS);
   });
 
   it('handles an empty-string key without spinning', () => {

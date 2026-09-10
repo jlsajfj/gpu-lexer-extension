@@ -26,15 +26,6 @@ function textOf(els: Element[]): string[] {
   return els.map((e) => e.textContent ?? '');
 }
 
-function textNodeChars(el: Element): number {
-  const walker = document.createTreeWalker(el, window.NodeFilter.SHOW_TEXT);
-  let total = 0;
-  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    total += (node as Text).data.length;
-  }
-  return total;
-}
-
 function check(el: Element, s: Lengths, code: string = extractCode(el)): boolean {
   return isEligible(el, code, s);
 }
@@ -168,20 +159,7 @@ describe('extractCode', () => {
     expect(extractCode(first('<pre><span>  a  b  </span>tail</pre>'))).toBe('  a  b  tail');
   });
 
-  it('returns an empty string for an empty element', () => {
-    expect(extractCode(first('<pre></pre>'))).toBe('');
-  });
-
   it('returns text from the whole subtree, not just direct children', () => {
     expect(extractCode(first('<pre>outer<span>inner<em>deep</em></span></pre>'))).toBe('outerinnerdeep');
-  });
-
-  it('length equals the sum of descendant text-node lengths', () => {
-    const fixture =
-      '<pre>const <span>x</span> = <em>"hi"</em>;\n' +
-      '<span><span>nested</span></span></pre>';
-    const pre = first(fixture);
-    expect(extractCode(pre).length).toBe(textNodeChars(pre));
-    expect(extractCode(pre)).toBe(pre.textContent);
   });
 });

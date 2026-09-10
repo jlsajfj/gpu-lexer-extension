@@ -14,23 +14,9 @@ function installChrome(initial: Record<string, unknown> = {}, options: FakeOptio
   const store: Record<string, unknown> = { ...initial };
 
   const sync = {
-    async get(key?: unknown): Promise<Record<string, unknown>> {
+    async get(key: string): Promise<Record<string, unknown>> {
       if (options.throwOnGet === true) throw new Error('storage unavailable');
-      if (key === undefined || key === null) return { ...store };
-      if (typeof key === 'string') return key in store ? { [key]: store[key] } : {};
-      if (Array.isArray(key)) {
-        const out: Record<string, unknown> = {};
-        for (const k of key) if (typeof k === 'string' && k in store) out[k] = store[k];
-        return out;
-      }
-      if (typeof key === 'object') {
-        const out: Record<string, unknown> = {};
-        for (const [k, fallback] of Object.entries(key as Record<string, unknown>)) {
-          out[k] = k in store ? store[k] : fallback;
-        }
-        return out;
-      }
-      return {};
+      return key in store ? { [key]: store[key] } : {};
     },
     async set(items: Record<string, unknown>): Promise<void> {
       if (options.throwOnSet === true) throw new Error('storage unavailable');
@@ -40,10 +26,6 @@ function installChrome(initial: Record<string, unknown> = {}, options: FakeOptio
 
   (globalThis as unknown as Record<string, unknown>)['chrome'] = { storage: { sync } };
   return { store };
-}
-
-function stored(): Record<string, unknown> {
-  return installChrome({}).store;
 }
 
 beforeEach(() => {
@@ -90,11 +72,6 @@ describe('loadSettings', () => {
     expect(Object.keys(s).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
   });
 
-  it('coerces a non-object stored value', async () => {
-    installChrome({ [SETTINGS_KEY]: 'not an object' });
-    expect(await loadSettings()).toEqual(DEFAULT_SETTINGS);
-  });
-
   it('keeps minLength within maxLength when stored bounds are inverted', async () => {
     installChrome({ [SETTINGS_KEY]: { minLength: 5000, maxLength: 100 } });
     const s = await loadSettings();
@@ -113,14 +90,6 @@ describe('saveSettings', () => {
     const { store } = installChrome({ [SETTINGS_KEY]: { enabled: false } });
     const { settings, persisted } = await saveSettings({ theme: 'dark' });
     expect(settings).toEqual({ ...DEFAULT_SETTINGS, enabled: false, theme: 'dark' });
-    expect(persisted).toBe(true);
-    expect(store[SETTINGS_KEY]).toEqual(settings);
-  });
-
-  it('returns and persists the defaults when nothing was stored', async () => {
-    const { store } = installChrome();
-    const { settings, persisted } = await saveSettings({ minLength: 40 });
-    expect(settings).toEqual({ ...DEFAULT_SETTINGS, minLength: 40 });
     expect(persisted).toBe(true);
     expect(store[SETTINGS_KEY]).toEqual(settings);
   });

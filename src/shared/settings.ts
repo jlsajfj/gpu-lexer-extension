@@ -7,7 +7,7 @@ export type Theme = (typeof THEMES)[number];
 export interface Settings {
   enabled: boolean;
   disabledHosts: string[];
-  inlineCode: boolean;   // highlight single-line <code> outside <pre>
+  inlineCode: boolean;
   minLength: number;
   maxLength: number;
   theme: Theme;
@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
 
 export const SETTINGS_KEY = 'settings';
 
-/** ~3x gpu-lexer's 16,384-token flush buffer at its measured 1.9-2.4 chars per token. */
+/** 200k chars is ~100k tokens, whose 32-float-per-token GPU buffer stays well inside maxBufferSize. */
 export const LENGTH_CAP = 200_000;
 
 function clampLength(v: unknown, fallback: number): number {
@@ -32,7 +32,6 @@ export function isTheme(v: unknown): v is Theme {
   return THEMES.some((theme) => theme === v);
 }
 
-/** Coerces arbitrary stored/supplied data into a complete, valid Settings. */
 export function normalizeSettings(raw: unknown): Settings {
   const src = isRecord(raw) ? raw : {};
 

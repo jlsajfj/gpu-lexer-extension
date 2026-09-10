@@ -7,7 +7,6 @@ export type SyntaxClassName = (typeof SYNTAX_CLASSES)[number];
 
 export interface SyntaxSpan { type: SyntaxClassName; start: number; end: number }
 
-/** The 8 classes that get a color; `plain` is deliberately excluded. */
 export const PAINTED_CLASSES = [
   'comment', 'string', 'number', 'keyword',
   'type', 'function', 'constant', 'operator',

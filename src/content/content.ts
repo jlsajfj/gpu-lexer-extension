@@ -147,9 +147,7 @@ function shutdown(): void {
   disarmResize();
   try {
     chrome.storage.onChanged.removeListener(onSettingsChanged);
-  } catch {
-    // the extension context is already gone
-  }
+  } catch {}
 }
 
 function registerShadowRoot(shadow: ShadowRoot): void {
@@ -421,6 +419,4 @@ async function main(): Promise<void> {
   begin();
 }
 
-void main().catch(() => {
-  // a failed bootstrap stays silent: this runs on every page the user visits
-});
+void main().catch(() => {});

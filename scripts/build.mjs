@@ -89,7 +89,6 @@ async function watchAll() {
   if (existsSync(PUBLIC)) {
     let pending = null;
     watchFs(PUBLIC, { recursive: true }, () => {
-      // fs.watch fires several events per save; debounce to one re-copy
       clearTimeout(pending);
       pending = setTimeout(() => {
         copyPublic().catch((err) => console.error(`  public copy failed: ${err.message}`));

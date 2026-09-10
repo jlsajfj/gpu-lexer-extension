@@ -159,7 +159,6 @@ body.ready { visibility: visible; }
   overflow-wrap: anywhere;
   font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-/* Token colors are the page palette from highlight.css, not a popup-local copy. */
 .tok-comment { color: var(--gpu-lexer-comment); } .tok-string { color: var(--gpu-lexer-string); }
 .tok-number { color: var(--gpu-lexer-number); } .tok-keyword { color: var(--gpu-lexer-keyword); }
 .tok-type { color: var(--gpu-lexer-type); } .tok-function { color: var(--gpu-lexer-function); }

@@ -83,14 +83,10 @@ async function recycleOffscreenDocument(): Promise<void> {
   noWebgpuUntil = Date.now() + NO_WEBGPU_COOLDOWN_MS;
   try {
     await chrome.offscreen.closeDocument();
-  } catch {
-    // the document was already gone
-  }
+  } catch {}
   try {
     await chrome.storage.session.set({ [NO_WEBGPU_KEY]: Date.now() });
-  } catch {
-    // a failed session write only costs one more document create on the next request
-  }
+  } catch {}
 }
 
 async function highlight(code: string): Promise<ParseResult> {

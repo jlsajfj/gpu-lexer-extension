@@ -26,7 +26,6 @@ function collectTextSlices(el: Element): TextSlice[] {
   return slices;
 }
 
-/** Index of the slice holding `offset`, which must be < the total text length. */
 function sliceAt(slices: TextSlice[], offset: number): number {
   let lo = 0;
   let hi = slices.length - 1;
@@ -38,7 +37,6 @@ function sliceAt(slices: TextSlice[], offset: number): number {
   return lo;
 }
 
-/** Maps character-offset spans onto live DOM Ranges inside `el`. */
 export function spansToRanges(
   el: Element,
   spans: readonly SyntaxSpan[],

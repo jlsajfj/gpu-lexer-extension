@@ -32,7 +32,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const errorText = (error) => (error instanceof Error ? error.message : String(error));
 
 function record(name, ok, detail = '') {
-  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : ` — ${detail}`}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail === '' ? '' : ` - ${detail}`}`);
   if (!ok) failures += 1;
   return ok;
 }
@@ -260,7 +260,6 @@ for (const value of values) { running = running + value * 3; }
 console.log(running);
 `;
 
-// Signature of the ranges painted inside one block: sorted "class:text" for every live range.
 const SIGNATURE_FN = `window.__smokeSignature = (id) => {
   const el = document.getElementById(id);
   if (el === null) return null;

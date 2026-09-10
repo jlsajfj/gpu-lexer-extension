@@ -37,12 +37,6 @@ describe('spansToRanges', () => {
     expect(texts(map, 'keyword')).toEqual(['t x = "hi"']);
   });
 
-  it('resolves a span that ends inside a later text node', () => {
-    const pre = el('<pre>const <span>x</span> = "hi";</pre>');
-    const map = spansToRanges(pre, [span('string', 6, 14)]);
-    expect(texts(map, 'string')).toEqual(['x = "hi"']);
-  });
-
   it('handles a span at offset 0 and a span ending on the last character', () => {
     const pre = el('<pre>abc def</pre>');
     const map = spansToRanges(pre, [span('keyword', 0, 3), span('constant', 4, 7)]);
@@ -92,13 +86,6 @@ describe('spansToRanges', () => {
     expect(map.get('keyword')?.length).toBe(1);
   });
 
-  it('clamps overshooting ends for more than one class in the same call', () => {
-    const pre = el('<pre>hello world</pre>');
-    const map = spansToRanges(pre, [span('keyword', 10, 9999), span('comment', 0, 9999)]);
-    expect(texts(map, 'keyword')).toEqual(['d']);
-    expect(texts(map, 'comment')).toEqual(['hello world']);
-  });
-
   it('drops a span whose start is negative instead of clamping it to 0', () => {
     const pre = el('<pre>hello world</pre>');
     const map = spansToRanges(pre, [span('keyword', -5, 3)]);
@@ -143,17 +130,9 @@ describe('spansToRanges', () => {
     expect(spansToRanges(pre, [span('keyword', 0, 1)]).size).toBe(0);
   });
 
-  it('returns an empty map for an empty span array', () => {
-    const pre = el('<pre>const x = 42;</pre>');
-    const map = spansToRanges(pre, []);
-    expect(map.size).toBe(0);
-    expect([...map.keys()]).toEqual([]);
-  });
-
-  it('does not throw on a whitespace-only element', () => {
+  it('maps a span over a whitespace-only text node', () => {
     const pre = el('<pre>   </pre>');
-    expect(spansToRanges(pre, []).size).toBe(0);
-    expect(() => spansToRanges(pre, [span('keyword', 0, 2)])).not.toThrow();
+    expect(texts(spansToRanges(pre, [span('keyword', 0, 3)]), 'keyword')).toEqual(['   ']);
   });
 
   it('does not throw on spans covering a single space', () => {

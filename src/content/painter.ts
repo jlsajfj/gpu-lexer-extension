@@ -1,7 +1,6 @@
 import type { PaintedClass } from '../shared/types.js';
 import { PAINTED_CLASSES, highlightName } from '../shared/types.js';
 
-// lib.dom types Highlight/HighlightRegistry without their Set-like members.
 interface HighlightLike {
   add(range: AbstractRange): void;
   delete(range: AbstractRange): void;
@@ -35,7 +34,6 @@ function highlightFor(cls: PaintedClass): HighlightLike | null {
   return created;
 }
 
-/** Replaces any ranges previously painted for `el`. */
 export function paint(el: Element, ranges: Map<PaintedClass, Range[]>): void {
   if (!isHighlightApiSupported()) return;
   unpaint(el);
@@ -51,7 +49,6 @@ export function paint(el: Element, ranges: Map<PaintedClass, Range[]>): void {
   if (stored.size > 0) painted.set(el, stored);
 }
 
-/** True when nothing is stored, or every stored range still lies inside `el`. */
 export function isPaintLive(el: Element): boolean {
   const stored = painted.get(el);
   if (!stored) return true;

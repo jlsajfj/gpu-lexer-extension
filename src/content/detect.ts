@@ -2,7 +2,6 @@ import type { Settings } from '../shared/settings.js';
 
 const EDITOR_SELECTOR = '[contenteditable]:not([contenteditable="false"])';
 
-/** Candidate blocks under `root`, outermost only (a <code> inside a <pre> yields just the <pre>). */
 export function findBlocks(root: ParentNode): HTMLElement[] {
   const candidates = root.querySelectorAll('pre, code');
   const set = new Set<Element>(candidates);
