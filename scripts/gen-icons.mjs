@@ -69,12 +69,19 @@ const CONCEPTS = {
 const DEFAULT_CONCEPT = 'lines';
 
 function parseArgs(argv) {
-  const args = { concept: null, generate: true, out: path.join(ROOT, 'public', 'icons'), basename: 'icon' };
+  const args = {
+    concept: null,
+    generate: true,
+    out: path.join(ROOT, 'public', 'icons'),
+    masterOut: path.join(ROOT, 'assets'),
+    basename: 'icon',
+  };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--no-generate') args.generate = false;
     else if (a === '--out') args.out = path.resolve(argv[++i] ?? '');
+    else if (a === '--master-out') args.masterOut = path.resolve(argv[++i] ?? '');
     else if (a === '--basename') args.basename = argv[++i];
     else if (a === '--list') args.list = true;
     else if (a.startsWith('-')) throw new Error(`unknown flag: ${a}`);
@@ -188,7 +195,9 @@ async function main() {
     throw new Error('OPENAI_API_KEY is not set in the environment; refusing to run.');
   }
 
-  const masterPath = path.join(args.out, `${args.basename}-${MASTER_SIZE}.png`);
+  // the master stays outside public/ so the 700 KB source art is not shipped in the extension
+  const masterPath = path.join(args.masterOut, `${args.basename}-${MASTER_SIZE}.png`);
+  await mkdir(args.masterOut, { recursive: true });
   await mkdir(args.out, { recursive: true });
 
   let masterBuffer;
