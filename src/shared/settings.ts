@@ -8,13 +8,14 @@ export interface Settings {
   enabled: boolean;
   disabledHosts: string[];
   inlineCode: boolean;
+  skipPreHighlighted: boolean;
   minLength: number;
   maxLength: number;
   theme: Theme;
 }
 
 export const DEFAULT_SETTINGS: Settings = Object.freeze({
-  enabled: true, disabledHosts: [], inlineCode: false,
+  enabled: true, disabledHosts: [], inlineCode: false, skipPreHighlighted: true,
   minLength: 24, maxLength: 100_000, theme: 'auto',
 });
 
@@ -47,6 +48,8 @@ export function normalizeSettings(raw: unknown): Settings {
     enabled: typeof src['enabled'] === 'boolean' ? src['enabled'] : DEFAULT_SETTINGS.enabled,
     disabledHosts,
     inlineCode: typeof src['inlineCode'] === 'boolean' ? src['inlineCode'] : DEFAULT_SETTINGS.inlineCode,
+    skipPreHighlighted:
+      typeof src['skipPreHighlighted'] === 'boolean' ? src['skipPreHighlighted'] : DEFAULT_SETTINGS.skipPreHighlighted,
     minLength: Math.min(a, b),
     maxLength: Math.max(a, b),
     theme: isTheme(src['theme']) ? src['theme'] : DEFAULT_SETTINGS.theme,

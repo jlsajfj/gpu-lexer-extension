@@ -1,4 +1,5 @@
 import { extractCode, findBlocks, isEligible } from './detect.js';
+import { isPreHighlighted } from './prehighlight.js';
 import { isHighlightApiSupported, isPaintLive, paint, unpaint, unpaintAll } from './painter.js';
 import { spansToRanges } from './ranges.js';
 import { isParseResult } from '../shared/protocol.js';
@@ -37,6 +38,7 @@ interface Session {
   lastParseAt: WeakMap<Element, number>;
   visible: WeakSet<Element>;
   shadowRoots: WeakSet<ShadowRoot>;
+  prehighlight: WeakMap<Element, { elements: number; length: number; skip: boolean }>;
   pending: Set<ParentNode> | null;
   fullScan: boolean;
   warned: Set<string>;
@@ -56,6 +58,7 @@ function newSession(settings: Settings | null): Session {
     lastParseAt: new WeakMap(),
     visible: new WeakSet(),
     shadowRoots: new WeakSet(),
+    prehighlight: new WeakMap(),
     pending: null,
     fullScan: false,
     warned: new Set(),
@@ -269,6 +272,15 @@ function remainingWait(el: Element, chars: number): number {
   return at + interval - performance.now();
 }
 
+function shouldSkipPreHighlighted(el: Element, code: string): boolean {
+  const elements = el.getElementsByTagName('*').length;
+  const cached = session.prehighlight.get(el);
+  if (cached && cached.elements === elements && cached.length === code.length) return cached.skip;
+  const skip = isPreHighlighted(el);
+  session.prehighlight.set(el, { elements, length: code.length, skip });
+  return skip;
+}
+
 function consider(el: Element, current: Settings): void {
   if (state !== 'running') return;
   if (!el.isConnected) {
@@ -277,6 +289,10 @@ function consider(el: Element, current: Settings): void {
   }
   const code = extractCode(el);
   if (!isEligible(el, code, current)) {
+    drop(el);
+    return;
+  }
+  if (current.skipPreHighlighted && shouldSkipPreHighlighted(el, code)) {
     drop(el);
     return;
   }
@@ -392,6 +408,7 @@ function needsRepaint(before: Settings, after: Settings): boolean {
   return (
     before.enabled !== after.enabled ||
     before.inlineCode !== after.inlineCode ||
+    before.skipPreHighlighted !== after.skipPreHighlighted ||
     before.minLength !== after.minLength ||
     before.maxLength !== after.maxLength ||
     before.disabledHosts.join('\n') !== after.disabledHosts.join('\n')

@@ -29,7 +29,9 @@ from `chrome://extensions` after a rebuild.
 ## How it works
 
 - **Content script** (`content.js`) scans the DOM for eligible `<pre>`/`<code>`
-  blocks, extracts their text, and asks the service worker to highlight it.
+  blocks, extracts their text, and asks the service worker to highlight it. Blocks
+  the page has already highlighted itself are skipped unless `skipPreHighlighted`
+  is turned off.
 - **Service worker** (`sw.js`) is a stateless router. It makes sure the offscreen
   document exists, forwards the request, and returns the response. It holds no
   state because Chrome kills it after 30 seconds idle.
@@ -59,6 +61,7 @@ Stored in `chrome.storage.sync` under the key `settings`.
 | `enabled` | boolean | `true` | Master switch for highlighting |
 | `disabledHosts` | string[] | `[]` | Hostnames to skip. A `.example.com` entry also matches subdomains |
 | `inlineCode` | boolean | `false` | Also highlight single-line `<code>` outside a `<pre>` |
+| `skipPreHighlighted` | boolean | `true` | Skip blocks the page has already highlighted with its own syntax highlighter |
 | `minLength` | number | `24` | Skip blocks shorter than this many characters |
 | `maxLength` | number | `100000` | Skip blocks longer than this many characters |
 | `theme` | `auto` \| `light` \| `dark` | `auto` | Which palette `highlight.css` paints with |

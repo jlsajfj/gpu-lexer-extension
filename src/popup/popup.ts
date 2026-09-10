@@ -18,6 +18,7 @@ const el = <T extends HTMLElement>(id: string): T => {
 const panel = el<HTMLElement>('panel');
 const enabledInput = el<HTMLInputElement>('enabled');
 const inlineInput = el<HTMLInputElement>('inline-code');
+const skipInput = el<HTMLInputElement>('skip-pre-highlighted');
 const siteRow = el<HTMLElement>('site-row');
 const siteHost = el<HTMLElement>('site-host');
 const siteNote = el<HTMLElement>('site-note');
@@ -44,6 +45,7 @@ function setMessage(node: HTMLElement, text: string | null): void {
 function render(): void {
   enabledInput.checked = settings.enabled;
   inlineInput.checked = settings.inlineCode;
+  skipInput.checked = settings.skipPreHighlighted;
   minInput.value = String(settings.minLength);
   maxInput.value = String(settings.maxLength);
   for (const input of themeInputs) input.checked = input.value === settings.theme;
@@ -52,7 +54,7 @@ function render(): void {
   if (settings.theme === 'auto') root.removeAttribute('data-gpu-lexer-theme');
   else root.setAttribute('data-gpu-lexer-theme', settings.theme);
   panel.classList.toggle('off', !settings.enabled);
-  for (const control of [siteToggle, inlineInput, minInput, maxInput]) {
+  for (const control of [siteToggle, inlineInput, skipInput, minInput, maxInput]) {
     control.disabled = !settings.enabled;
   }
 }
@@ -137,6 +139,10 @@ enabledInput.addEventListener('change', () => {
 
 inlineInput.addEventListener('change', () => {
   update({ inlineCode: inlineInput.checked });
+});
+
+skipInput.addEventListener('change', () => {
+  update({ skipPreHighlighted: skipInput.checked });
 });
 
 siteToggle.addEventListener('change', () => {
