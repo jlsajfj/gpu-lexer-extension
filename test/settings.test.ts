@@ -72,6 +72,18 @@ describe('loadSettings', () => {
     expect(Object.keys(s).sort()).toEqual(Object.keys(DEFAULT_SETTINGS).sort());
   });
 
+  it('falls back to the skipPreHighlighted default when the stored value is not a boolean', async () => {
+    installChrome({ [SETTINGS_KEY]: { skipPreHighlighted: '' } });
+    const s = await loadSettings();
+    expect(s.skipPreHighlighted).toBe(true);
+  });
+
+  it('keeps an explicit false skipPreHighlighted through normalize', async () => {
+    installChrome({ [SETTINGS_KEY]: { skipPreHighlighted: false } });
+    const s = await loadSettings();
+    expect(s.skipPreHighlighted).toBe(false);
+  });
+
   it('keeps minLength within maxLength when stored bounds are inverted', async () => {
     installChrome({ [SETTINGS_KEY]: { minLength: 5000, maxLength: 100 } });
     const s = await loadSettings();

@@ -1,7 +1,10 @@
 # gpu-lexer-extension
 
-A Chrome extension that syntax-highlights every `<pre>` and `<code>` block on any
-web page, automatically. It uses [gpu-lexer](https://gpu-lexer.vercel.app), a
+A Chrome extension that syntax-highlights `<pre>` and `<code>` blocks on any web
+page, automatically. Blocks the page already highlighted itself are left alone: a
+block counts as pre-highlighted when it carries a known highlighter class
+(`hljs`, `token`, `chroma`, `hljs-`, `cm-`, `mtk`, `pl-`, `tok-`, `shiki`) or shows
+more than one text color. It uses [gpu-lexer](https://gpu-lexer.vercel.app), a
 41k-parameter neural highlighter from Vercel Labs that runs on WebGPU and guesses
 the language itself, so there is no grammar list and no per-language parser to
 configure. The model weights are inlined in the library, which is 27KB brotli on
@@ -29,7 +32,9 @@ from `chrome://extensions` after a rebuild.
 ## How it works
 
 - **Content script** (`content.js`) scans the DOM for eligible `<pre>`/`<code>`
-  blocks, extracts their text, and asks the service worker to highlight it.
+  blocks, extracts their text, and asks the service worker to highlight it. Blocks
+  the page has already highlighted itself are skipped unless `skipPreHighlighted`
+  is turned off.
 - **Service worker** (`sw.js`) is a stateless router. It makes sure the offscreen
   document exists, forwards the request, and returns the response. It holds no
   state because Chrome kills it after 30 seconds idle.
@@ -59,6 +64,7 @@ Stored in `chrome.storage.sync` under the key `settings`.
 | `enabled` | boolean | `true` | Master switch for highlighting |
 | `disabledHosts` | string[] | `[]` | Hostnames to skip. A `.example.com` entry also matches subdomains |
 | `inlineCode` | boolean | `false` | Also highlight single-line `<code>` outside a `<pre>` |
+| `skipPreHighlighted` | boolean | `true` | Skip blocks the page has already highlighted with its own syntax highlighter |
 | `minLength` | number | `24` | Skip blocks shorter than this many characters |
 | `maxLength` | number | `100000` | Skip blocks longer than this many characters |
 | `theme` | `auto` \| `light` \| `dark` | `auto` | Which palette `highlight.css` paints with |

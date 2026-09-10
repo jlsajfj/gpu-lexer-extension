@@ -14,10 +14,16 @@
     <h1>gpu-lexer smoke fixture</h1>
 
     <h2>Already wrapped in the site's own spans</h2>
-    <pre><code><span class="tok-k">function</span> <span class="tok-f">fibonacci</span>(n) {
+    <pre id="prehighlighted"><code><span class="tok-k">function</span> <span class="tok-f">fibonacci</span>(n) {
   <span class="tok-k">if</span> (n &lt; <span class="tok-n">2</span>) <span class="tok-k">return</span> n;
   <span class="tok-k">return</span> fibonacci(n - <span class="tok-n">1</span>) + fibonacci(n - <span class="tok-n">2</span>);
 }</code></pre>
+
+    <h2>Wrapped in plain spans</h2>
+    <pre id="wrapped"><span class="line">SELECT customer_id, SUM(total) AS revenue</span>
+<span class="line">FROM orders</span>
+<span class="line">WHERE created_at &gt; '2024-01-01'</span>
+<span class="line">GROUP BY customer_id;</span></pre>
 
     <h2>Bare pre</h2>
     <pre>SELECT customer_id, COUNT(*) AS orders
