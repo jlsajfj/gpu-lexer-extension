@@ -1,4 +1,4 @@
-# gpu-lexer-extension
+# Tint: Automatic Code Highlighting
 
 A Chrome extension that syntax-highlights `<pre>` and `<code>` blocks on any web
 page, automatically. Blocks the page already highlighted itself are left alone: a
@@ -86,6 +86,11 @@ Stored in `chrome.storage.sync` under the key `settings`.
 
 Syntax highlighting by [gpu-lexer](https://gpu-lexer.vercel.app) (Vercel Labs),
 MIT licensed. Try the upstream demo at https://gpu-lexer.vercel.app.
+
+The extension is named Tint. The repository and package stay
+`gpu-lexer-extension`, and the internal `gpu-lexer-*` CSS custom properties and
+`CSS.highlights` registry keys keep that prefix: those name gpu-lexer's own token
+spans, which is accurate, and the registry is shared with the page.
 
 ## License
 
