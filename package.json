@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Chrome extension that syntax-highlights every <pre>/<code> block with gpu-lexer on WebGPU",
+  "description": "Chrome extension that syntax-highlights <pre>/<code> blocks with gpu-lexer on WebGPU, skipping blocks the page already highlights",
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.mjs",

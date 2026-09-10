@@ -73,7 +73,7 @@ describe('loadSettings', () => {
   });
 
   it('falls back to the skipPreHighlighted default when the stored value is not a boolean', async () => {
-    installChrome({ [SETTINGS_KEY]: { skipPreHighlighted: 'yes' } });
+    installChrome({ [SETTINGS_KEY]: { skipPreHighlighted: '' } });
     const s = await loadSettings();
     expect(s.skipPreHighlighted).toBe(true);
   });

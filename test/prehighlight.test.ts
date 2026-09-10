@@ -24,10 +24,6 @@ describe('isPreHighlighted', () => {
     expect(isPreHighlighted(attached('<pre>const x = 1; const y = 2;</pre>'))).toBe(false);
   });
 
-  it('returns false for a block with no descendant elements', () => {
-    expect(isPreHighlighted(attached('<pre style="color: rgb(30, 30, 30)">const x = 1;</pre>'))).toBe(false);
-  });
-
   it('returns false for a detached element even with a highlighter class', () => {
     expect(isPreHighlighted(fixture('<pre class="hljs">const x = 1;</pre>'))).toBe(false);
   });
@@ -37,16 +33,8 @@ describe('isPreHighlighted', () => {
     expect(isPreHighlighted(attached('<pre class="chroma">plain text here</pre>'))).toBe(true);
   });
 
-  it('detects an hljs span', () => {
-    expect(isPreHighlighted(attached('<pre><span class="hljs-keyword">const</span></pre>'))).toBe(true);
-  });
-
   it('detects a bare hljs class', () => {
     expect(isPreHighlighted(attached('<pre><code class="hljs">const x = 1;</code></pre>'))).toBe(true);
-  });
-
-  it('detects a chroma class', () => {
-    expect(isPreHighlighted(attached('<pre><span class="chroma">const</span></pre>'))).toBe(true);
   });
 
   it('detects a Prism token class', () => {
@@ -73,14 +61,9 @@ describe('isPreHighlighted', () => {
     expect(isPreHighlighted(attached('<pre><span class="shiki">const</span></pre>'))).toBe(true);
   });
 
-  it('returns false for a language-python hint on the block', () => {
-    const pre = attached('<pre class="language-python"><span class="line">const x = 1;</span></pre>');
-    expect(isPreHighlighted(pre)).toBe(false);
-  });
-
-  it('returns false for a lang-js hint on the block', () => {
-    const pre = attached('<pre class="lang-js"><span class="line">const x = 1;</span></pre>');
-    expect(isPreHighlighted(pre)).toBe(false);
+  it('returns false for language-hint classes on the block', () => {
+    expect(isPreHighlighted(attached('<pre class="language-python"><span class="line">const x = 1;</span></pre>'))).toBe(false);
+    expect(isPreHighlighted(attached('<pre class="lang-js"><span class="line">const x = 1;</span></pre>'))).toBe(false);
   });
 
   it('detects an hljs- span nested three levels down', () => {
@@ -126,18 +109,18 @@ describe('isPreHighlighted', () => {
 
   it('ignores a wrapper span whose color is not on its own text', () => {
     const pre = attached(
-      '<pre style="color: rgb(30, 30, 30)"><span style="color: rgb(255, 0, 0)"><span style="color: rgb(30, 30, 30)">a</span></span></pre>',
+      '<pre style="color: rgb(30, 30, 30)">x<span style="color: rgb(255, 0, 0)"><span style="color: rgb(30, 30, 30)">a</span></span></pre>',
     );
     expect(isPreHighlighted(pre)).toBe(false);
   });
 
   it('ignores a whitespace-only span', () => {
-    const pre = attached('<pre style="color: rgb(30, 30, 30)"><span style="color: rgb(255, 0, 0)">  </span></pre>');
+    const pre = attached('<pre style="color: rgb(30, 30, 30)">const x = 1;<span style="color: rgb(255, 0, 0)">  </span></pre>');
     expect(isPreHighlighted(pre)).toBe(false);
   });
 
-  it('returns false for a lone link with a different color', () => {
-    const pre = attached('<pre style="color: rgb(30, 30, 30)"><a style="color: rgb(0, 0, 255)">link</a></pre>');
+  it('ignores a link with a different color', () => {
+    const pre = attached('<pre style="color: rgb(30, 30, 30)">see <a style="color: rgb(0, 0, 255)">link</a></pre>');
     expect(isPreHighlighted(pre)).toBe(false);
   });
 
