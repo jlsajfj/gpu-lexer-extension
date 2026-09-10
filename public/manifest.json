@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "GPU Lexer Syntax Highlighting",
+  "name": "Tint: Automatic Code Highlighting",
   "version": "0.1.0",
-  "description": "Syntax-highlights <pre> and <code> blocks with gpu-lexer, a small WebGPU model. Blocks the page already highlighted are left alone.",
+  "description": "Automatically colors code blocks on any page. Powered by gpu-lexer, a neural model that guesses the language on your GPU.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon-16.png",
