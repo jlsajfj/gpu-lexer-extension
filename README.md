@@ -26,6 +26,17 @@ Then open `chrome://extensions`, turn on Developer mode, click "Load unpacked", 
 pick the `dist/` directory. `npm run watch` rebuilds on change; reload the extension
 from `chrome://extensions` after a rebuild.
 
+## Icon
+
+`public/icons/` holds the toolbar and extension icon at 16, 32, 48 and 128 px,
+all downscaled from a 1024 px master. `npm run gen-icons` redraws the master with
+the OpenAI images API (`gpt-image-2` model) and regenerates every size; it needs
+`OPENAI_API_KEY` set, and it is deliberately manual and not part of
+`npm run build`, because each run costs money and is not reproducible. To rebuild
+the four sizes from the existing master without calling the API, use the
+resize-only flag: `npm run gen-icons -- --no-generate`; add `--list` to print the
+available concepts.
+
 ## How it works
 
 - **Content script** (`content.js`) scans the DOM for eligible `<pre>`/`<code>`
